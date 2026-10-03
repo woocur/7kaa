@@ -378,7 +378,7 @@ void Sys::disp_button()
 {
 	vga.use_back();
 
-	button_menu.paint( 720, 6, "MENU-U", "MENU-D" );
+	button_menu.paint( 720+UI_X_SHIFT, 6, "MENU-U", "MENU-D" );
 	button_menu.set_help_code( "GAMEMENU" );
 
 	vga.use_front();

@@ -275,6 +275,8 @@ void ConfigAdv::reset()
 
 	vga_window_width = 0;
 	vga_window_height = 0;
+	vga_game_width = 0;
+	vga_game_height = 0;
 
 	wall_building_allowed = 0;
 
@@ -486,6 +488,16 @@ int ConfigAdv::set(char *name, char *value)
 	else if( !strcmp(name, "vga_allow_highdpi") )
 	{
 		if( !read_bool(value, &vga_allow_highdpi) )
+			return 0;
+	}
+	else if( !strcmp(name, "vga_game_height") )
+	{
+		if( !read_int(value, &vga_game_height) )
+			return 0;
+	}
+	else if( !strcmp(name, "vga_game_width") )
+	{
+		if( !read_int(value, &vga_game_width) )
 			return 0;
 	}
 	else if( !strcmp(name, "vga_full_screen") )

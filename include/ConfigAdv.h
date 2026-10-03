@@ -103,6 +103,8 @@ public:
 
 	int			vga_window_width;
 	int			vga_window_height;
+	int			vga_game_width;		// in-game resolution, 0 = match the window
+	int			vga_game_height;
 
 	// wall settings
 	char			wall_building_allowed;

@@ -38,13 +38,13 @@ enum { INFO_REPAINT=10, INFO_UPDATE, INFO_SPECIAL };
 
 #define TOP_MENU_X1	 4
 #define TOP_MENU_Y1   4
-#define TOP_MENU_X2   (ZOOM_X2-4)
+#define TOP_MENU_X2   (575-4)		// the top bar is not widened
 #define TOP_MENU_Y2	 30
 
-#define INFO_X1 	586
+#define INFO_X1 	(586+UI_X_SHIFT)
 #define INFO_Y1   265
-#define INFO_X2   790
-#define INFO_Y2	589
+#define INFO_X2   (790+UI_X_SHIFT)
+#define INFO_Y2	(589+UI_Y_SHIFT)
 
 #define MSG_X1		INFO_X1
 #define MSG_Y1 	(INFO_Y2-29)
@@ -170,6 +170,7 @@ public:
 	//------ keep a copy of bitmap of the panel texture -----//
 
 	char*		info_background_bitmap;		// declare them static, so they won't be saved
+	int		info_background_size;
 	DynArray report_array;
 	DynArray report_array2;
 	DynArray talk_msg_disp_array;

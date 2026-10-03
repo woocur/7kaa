@@ -108,9 +108,9 @@ void MapMatrix::disp_mode_button(int putFront)
 	}
 
 	if( putFront )
-		image_button.put_front( 579, 2, iconName, 1 );
+		image_button.put_front( 579+UI_X_SHIFT, 2, iconName, 1 );
 	else
-		image_button.put_back( 579, 2, iconName, 1 );
+		image_button.put_back( 579+UI_X_SHIFT, 2, iconName, 1 );
 }
 //----------- End of function MapMatrix::disp_mode_button ------------//
 
@@ -119,7 +119,7 @@ void MapMatrix::disp_mode_button(int putFront)
 
 int MapMatrix::detect()
 {
-	int x=586;
+	int x=586+UI_X_SHIFT;
 
 	#define MAP_MODE_BUTTON_WIDTH 40
 

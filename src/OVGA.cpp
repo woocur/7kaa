@@ -41,6 +41,9 @@ static void init_window_size();
 
 //------ Define static class member vars ---------//
 
+int     Vga::screen_width  = VGA_BASE_WIDTH;
+int     Vga::screen_height = VGA_BASE_HEIGHT;
+
 char    Vga::use_back_buf = 0;
 char    Vga::opaque_flag  = 0;
 VgaBuf* Vga::active_buf   = &vga_front;      // default: front buffer
@@ -808,6 +811,102 @@ void Vga::flip()
    }
 }
 //-------- End of function Vga::flip ----------//
+
+
+//-------- Begin of function Vga::set_mode ----------//
+//
+// Change the size of the game screen. The front and back buffers are
+// recreated, so their content is lost and the caller must redraw.
+//
+// Returns 1 if the size was changed, 0 otherwise.
+//
+int Vga::set_mode(int width, int height)
+{
+   width  = MAX(VGA_BASE_WIDTH,  MIN(VGA_MAX_WIDTH,  width));
+   height = MAX(VGA_BASE_HEIGHT, MIN(VGA_MAX_HEIGHT, height));
+
+   if( width == screen_width && height == screen_height )
+      return 0;
+
+   if( !is_inited() )
+   {
+      screen_width  = width;
+      screen_height = height;
+      return 1;
+   }
+
+   SDL_Surface *newTarget = SDL_CreateRGBSurface(0, width, height,
+      target->format->BitsPerPixel, 0, 0, 0, 0);
+   SDL_Texture *newTexture = SDL_CreateTexture(renderer,
+      SDL_GetWindowPixelFormat(window), SDL_TEXTUREACCESS_STREAMING,
+      width, height);
+   if( !newTarget || !newTexture )
+   {
+      ERR("Could not change the screen size to %dx%d: %s\n", width, height, SDL_GetError());
+      if( newTarget )
+         SDL_FreeSurface(newTarget);
+      if( newTexture )
+         SDL_DestroyTexture(newTexture);
+      return 0;
+   }
+
+   SDL_FreeSurface(target);
+   target = newTarget;
+   SDL_DestroyTexture(texture);
+   texture = newTexture;
+
+   screen_width  = width;
+   screen_height = height;
+
+   SDL_Color *pal = custom_pal ? custom_pal : game_pal;
+
+   vga_front.deinit();
+   vga_front.init(1);
+   vga_front.activate_pal(pal);
+   if( sys.debug_session )
+   {
+      vga_true_front.deinit();
+      vga_true_front.init(1);
+      vga_true_front.activate_pal(pal);
+   }
+   vga_back.deinit();
+   vga_back.init(0);
+   vga_back.activate_pal(pal);
+
+   if( config_adv.vga_keep_aspect_ratio )
+      SDL_RenderSetLogicalSize(renderer, width, height);
+
+   mouse.cur_x = MIN(mouse.cur_x, width-1);
+   mouse.cur_y = MIN(mouse.cur_y, height-1);
+   mouse.reset_boundary();
+   boundary_set = 0;
+   sys.need_redraw_flag = 1;
+
+   MSG("Screen size set to %dx%d\n", width, height);
+   return 1;
+}
+//-------- End of function Vga::set_mode ----------//
+
+
+//-------- Begin of function Vga::set_game_mode ----------//
+//
+// Switch to the in-game screen size: vga_game_width x vga_game_height, or the
+// size of the window when those are not set.
+//
+void Vga::set_game_mode()
+{
+   int width = config_adv.vga_game_width;
+   int height = config_adv.vga_game_height;
+
+   if( !width || !height )
+   {
+      if( !is_inited() || SDL_GetRendererOutputSize(renderer, &width, &height) < 0 )
+         return;
+   }
+
+   set_mode(width, height);
+}
+//-------- End of function Vga::set_game_mode ----------//
 
 
 //-------- Beginning of function Vga::save_status_report ----------//

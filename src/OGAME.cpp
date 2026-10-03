@@ -117,6 +117,8 @@ int Game::init(int loadGameCall)
 
 	music.stop();
 
+	vga.set_game_mode();		// must be set before the zoom and map windows are initialized
+
 	// ----- set waiting cursor -------- //
 	int oldCursor = mouse_cursor.get_icon();
 	mouse_cursor.set_icon(CURSOR_WAITING);
@@ -316,6 +318,9 @@ void Game::deinit(int loadGameCall)
 	//----- restore from waiting cursor -------- //
 
 	mouse_cursor.restore_icon(oldCursor);
+
+	if( !loadGameCall )
+		vga.set_menu_mode();		// menus are drawn for 800x600
 
 	init_flag=0;
 }

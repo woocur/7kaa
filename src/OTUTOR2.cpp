@@ -50,8 +50,8 @@ static void disp_scroll_bar_func(SlideVBar *scroll, int);
 
 enum { TUTOR_MENU_X1 = 0,
 		 TUTOR_MENU_Y1 = 0,
-		 TUTOR_MENU_WIDTH = VGA_WIDTH,
-		 TUTOR_MENU_HEIGHT = VGA_HEIGHT };
+		 TUTOR_MENU_WIDTH = VGA_BASE_WIDTH,
+		 TUTOR_MENU_HEIGHT = VGA_BASE_HEIGHT };
 
 enum { SCROLL_X1 = 757,
 		 SCROLL_Y1 = 309,
