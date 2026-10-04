@@ -1,6 +1,6 @@
 # 세븐킹덤즈 고해상도 시제품 - Windows 다운로드
 
-**[7kaa-hires-win64.zip 내려받기](https://github.com/woocur/7kaa/raw/download/7kaa-hires-win64.zip)** (72MB, 한국어·배경음악 포함)
+**[7kaa-hires-win64.zip 내려받기](https://github.com/woocur/7kaa/raw/download/7kaa-hires-win64.zip)** (71MB, 한국어·배경음악 포함)
 
 1. 압축을 풀고 `7kaa.exe`를 실행합니다.
 2. SmartScreen 경고가 뜨면 "추가 정보" → "실행" (서명 없는 테스트 빌드).
