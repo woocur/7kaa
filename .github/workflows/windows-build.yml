@@ -56,6 +56,10 @@ jobs:
           for d in ENCYC ENCYC2 IMAGE RESOURCE SCENARI2 SCENARIO SOUND SPRITE TUTORIAL; do cp -r data/$d $D/; done
           find $D -name 'Makefile*' -delete
           cp COPYING $D/
+          # Music is not in the source repo; take the unmodified set (with its license) from the official release
+          curl -fsSL --retry 3 -o music.tgz "https://sourceforge.net/projects/skfans/files/7KAA%202.15.7/7kaa-2.15.7-linux-x86-64.tar.gz/download"
+          tar xzf music.tgz --strip-components=1 -C $D 7kaa-2.15.7-linux-x86-64/MUSIC 7kaa-2.15.7-linux-x86-64/COPYING.music
+          test -f $D/MUSIC/WAR.WAV
 
       - uses: actions/upload-artifact@v4
         with:
