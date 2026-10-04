@@ -22,6 +22,10 @@
 //Description : Locale Resources
 
 #include <stdlib.h>
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
 #ifdef ENABLE_NLS
 #include <libintl.h>
 #include <locale.h>
@@ -88,6 +92,9 @@ void LocaleRes::init()
 		bindtextdomain(PACKAGE, locale_dir);
 	}
 	textdomain(PACKAGE);
+	// Messages are always delivered in UTF-8 and converted to the font's
+	// codeset by conv_str().
+	bind_textdomain_codeset(PACKAGE, "UTF-8");
 	setlocale(LC_ALL, "");
 	load(getenv("SKMESSAGES"));
 
@@ -142,6 +149,19 @@ void LocaleRes::load(const char *locale)
 	}
 	locale = get_messages_locale();
 
+#ifdef _WIN32
+	// Windows has no POSIX locale variables. Pick Korean from the user's
+	// Windows language, since its catalog has its own font set.
+	wchar_t winLocale[LOCALE_NAME_MAX_LENGTH];
+	if( (!locale || !locale[0]) &&
+		GetUserDefaultLocaleName(winLocale, LOCALE_NAME_MAX_LENGTH) &&
+		!wcsncmp(winLocale, L"ko", 2) )
+	{
+		locale = "ko_KR";
+		setenv("LC_MESSAGES", locale, 1);
+	}
+#endif
+
 	if( !locale || !locale[0] )
 	{
 		// The platform doesn't have full POSIX localization, and the
@@ -154,6 +174,11 @@ void LocaleRes::load(const char *locale)
 		setlocale(LC_CTYPE, locale);
 		setenv("LC_MESSAGES", locale, 1);
 	}
+
+	// let gettext pick up the locale chosen above
+	const char *locale_dir = get_locale_dir();
+	if( locale_dir )
+		bindtextdomain(PACKAGE, locale_dir);
 
 	LocaleRec *localeRec;
 	String localeDbName;
@@ -193,8 +218,12 @@ void LocaleRes::load(const char *locale)
 		iconv_close(cd);
 	if( cd_latin != (iconv_t)-1 )
 		iconv_close(cd_latin);
-	cd = iconv_open(tocode, "");
-	cd_latin = iconv_open("ISO-8859-1", "");
+	// UTF-8 fonts take the messages as they are
+	if( !misc.str_icmpx(codeset, "UTF-8") )
+		cd = iconv_open(tocode, "UTF-8");
+	else
+		cd = (iconv_t)-1;
+	cd_latin = iconv_open("ISO-8859-1//TRANSLIT", "UTF-8");
 	cd_from_sdl = iconv_open("ISO-8859-1//TRANSLIT//IGNORE", "UTF-8");
 #endif
 }

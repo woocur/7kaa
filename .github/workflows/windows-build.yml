@@ -36,12 +36,20 @@ jobs:
             -DCMAKE_INSTALL_PREFIX="$PREFIX" -DALSOFT_UTILS=OFF -DALSOFT_EXAMPLES=OFF -DCMAKE_BUILD_TYPE=Release
           cmake --build openal-soft/b -j4
           cmake --install openal-soft/b
+          # NLS: win-iconv plus the small libintl in tools/mini-libintl
+          git clone -q --depth 1 https://github.com/win-iconv/win-iconv.git
+          $HOST-gcc -O2 -c win-iconv/win_iconv.c -o win_iconv.o
+          $HOST-ar rcs "$PREFIX/lib/libiconv.a" win_iconv.o
+          { printf '#ifndef WINICONV_CONST\n#define WINICONV_CONST\n#endif\n'; cat win-iconv/iconv.h; } > "$PREFIX/include/iconv.h"
+          $HOST-gcc -O2 -c ../tools/mini-libintl/libintl.c -o libintl.o
+          $HOST-ar rcs "$PREFIX/lib/libintl.a" libintl.o
+          cp ../tools/mini-libintl/libintl.h "$PREFIX/include/"
 
       - name: Build 7kaa.exe
         run: |
           # sdl2.m4 (AM_PATH_SDL2) ships with the SDL2 devel package, not the runner
           ACLOCAL_PATH="$PREFIX/share/aclocal" ./autogen.sh
-          PKG_CONFIG_LIBDIR="$PREFIX/lib/pkgconfig" ./configure --host=$HOST --disable-curl --disable-nls \
+          PKG_CONFIG_LIBDIR="$PREFIX/lib/pkgconfig" ./configure --host=$HOST --disable-curl \
             CPPFLAGS="-I$PREFIX/include" LDFLAGS="-L$PREFIX/lib"
           make -j4
 
@@ -56,6 +64,17 @@ jobs:
           for d in ENCYC ENCYC2 IMAGE RESOURCE SCENARI2 SCENARIO SOUND SPRITE TUTORIAL; do cp -r data/$d $D/; done
           find $D -name 'Makefile*' -delete
           cp COPYING $D/
+          # translations
+          for po in po/*.po; do
+            l=$(basename $po .po)
+            mkdir -p $D/locale/$l/LC_MESSAGES
+            msgfmt -o $D/locale/$l/LC_MESSAGES/7kaa.mo $po
+          done
+          # Korean pixel fonts from Galmuri (OFL)
+          npm pack galmuri@2.40.3 --silent
+          mkdir galmuri && tar xzf galmuri-2.40.3.tgz -C galmuri
+          python3 tools/gen-ko-fonts.py data/RESOURCE galmuri/package/dist $D/RESOURCE
+          cp galmuri/package/dist/LICENSE.txt $D/COPYING.galmuri
           # Music is not in the source repo; take the unmodified set (with its license) from the official release
           curl -fsSL --retry 3 -o music.tgz "https://sourceforge.net/projects/skfans/files/7KAA%202.15.7/7kaa-2.15.7-linux-x86-64.tar.gz/download"
           tar xzf music.tgz --strip-components=1 -C $D 7kaa-2.15.7-linux-x86-64/MUSIC 7kaa-2.15.7-linux-x86-64/COPYING.music

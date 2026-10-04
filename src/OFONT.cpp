@@ -94,6 +94,29 @@ HyperField Font::hyper_field_array[MAX_HYPER_FIELD];
 
 static int text_line_count;     // used by text_width() & text_height() only
 
+//------- Begin of static function next_char -------//
+//
+// Return the character at textPtr and advance textPtr past it. When the
+// font covers more than 8-bit codes, the text is decoded as UTF-8.
+// textPtr is not advanced past the terminating null.
+//
+static int next_char(const char*& textPtr, char utf8)
+{
+	int c = *((unsigned char*)textPtr);
+	if( !c )
+		return 0;
+	textPtr++;
+	if( !utf8 || c < 0xC0 )
+		return c;
+
+	int extra = c >= 0xF0 ? 3 : c >= 0xE0 ? 2 : 1;
+	c &= 0x3F >> extra;
+	while( extra-- && (*((unsigned char*)textPtr) & 0xC0) == 0x80 )
+		c = (c << 6) | (*((unsigned char*)textPtr++) & 0x3F);
+	return c;
+}
+//------- End of static function next_char -------//
+
 //----------- Begin of function Font Constructor -------//
 
 Font::Font(char* fontName)
@@ -112,6 +135,7 @@ Font::Font(char* fontName)
 	last_char = 0;
 	font_info_array = NULL;
 	font_bitmap_buf = NULL;
+	utf8_flag = 0;
 
 	if( fontName )
 		init(fontName);
@@ -176,6 +200,7 @@ void Font::init(const char* fontName, int interCharSpace, int italicShift)
 
 	first_char  	 = fontHeader.first_char;
 	last_char		 = fontHeader.last_char;
+	utf8_flag		 = last_char > 0xFF;
 
 	//----------- read in font info ------------//
 
@@ -270,7 +295,7 @@ int Font::put(int x,int y,const char* textPtr, char clearBack, int x2 )
 
 	//-------- process translation ---------//
 
-	short textChar;
+	int textChar;
 
 	//-------------------------------------//
 
@@ -292,7 +317,10 @@ int Font::put(int x,int y,const char* textPtr, char clearBack, int x2 )
 
 	for( int lenCount=1 ; *textPtr && lenCount<=textPtrLen ; textPtr++, lenCount++ )
 	{
-		textChar = *((unsigned char*)textPtr);         // textChar is <unsiged char>
+		const char* nextPtr = textPtr;
+		textChar = next_char(nextPtr, utf8_flag);
+		lenCount += nextPtr-textPtr-1;
+		textPtr = nextPtr-1;
 
 //#ifdef GERMAN
 //		textChar = translate_german_char(textChar);
@@ -422,7 +450,7 @@ int Font::put(int x,int y,const char* textPtr, char clearBack, int x2 )
 // <int>  x, y      = the position of the character
 // <char> textChar  = the character
 //
-void Font::put_char(int x, int y, unsigned short textChar)
+void Font::put_char(int x, int y, int textChar)
 {
 	if( textChar >= first_char && textChar <= last_char )
 	{
@@ -468,7 +496,7 @@ void Font::right_put(int x, int y, char* textPtr)
 int Font::text_width(const char* textPtr, int textPtrLen, int maxDispWidth)
 {
 	int   charWidth, x=0, lenCount, maxLen=0, wordWidth=0;
-	short textChar;
+	int   textChar;
 
 	if( !init_flag )
 		return x;
@@ -487,7 +515,10 @@ int Font::text_width(const char* textPtr, int textPtrLen, int maxDispWidth)
 
 	for( lenCount=1 ; *textPtr && lenCount<=textPtrLen ; textPtr++, lenCount++, x+=inter_char_space )
 	{
-		textChar = *((unsigned char*)textPtr);
+		const char* nextPtr = textPtr;
+		textChar = next_char(nextPtr, utf8_flag);
+		lenCount += nextPtr-textPtr-1;
+		textPtr = nextPtr-1;
 
 //#ifdef GERMAN
 //		textChar = translate_german_char(textChar);
@@ -647,7 +678,8 @@ void Font::put_paragraph(int x1, int y1, int x2, int y2, const char *textPtr,
 	int   newWord;
 	int   newLine;
 	int   charWidth;
-	short textChar;
+	int   textChar;
+	const char *charPtr;
 	const char *wordPtr;
 	const char *linePtr;
 
@@ -690,13 +722,8 @@ void Font::put_paragraph(int x1, int y1, int x2, int y2, const char *textPtr,
 
 	while( !eot_flag )
 	{
-		textChar = *((unsigned char*)textPtr); // textChar is <unsiged char>
-//#ifdef GERMAN
-//		textChar = translate_german_char(textChar);
-//#endif
-
-		if( textChar ) // don't go past end
-			textPtr++;
+		charPtr = textPtr;
+		textChar = next_char(textPtr, utf8_flag); // doesn't go past end
 
 		//---------- control char: '_' -------------//
 
@@ -784,7 +811,7 @@ void Font::put_paragraph(int x1, int y1, int x2, int y2, const char *textPtr,
 				if( wordPtr == linePtr )
 				{
 					// hard break in the middle of this single word since it cannot fit in a single line
-					wordPtr = textPtr-1;
+					wordPtr = charPtr;
 					wordX = 0;
 				}
 			}
@@ -1329,7 +1356,7 @@ int Font::disp(int x1, int y1, const char* textPtr, int x2)
 
 
 //--------- Begin of function Font::put_char_to_buffer ---------//
-void Font::put_char_to_buffer(char* dest, int destPitch, int x, int y, unsigned short textChar)
+void Font::put_char_to_buffer(char* dest, int destPitch, int x, int y, int textChar)
 {
 	if( textChar >= first_char && textChar <= last_char )
 	{
@@ -1351,8 +1378,7 @@ void Font::put_to_buffer(char* dest, int destPitch, int x1, int y1, const char *
 #endif
 	while( *text != '\0' && x1 < x2)
 	{
-		int charSize = sizeof(unsigned char);		// 1 for byte character, 2 for word character
-		unsigned short textChar = *(unsigned char *)text;
+		int textChar = next_char(text, utf8_flag);
 
 //#ifdef GERMAN
 //		textChar = translate_german_char(textChar);
@@ -1367,14 +1393,13 @@ void Font::put_to_buffer(char* dest, int destPitch, int x1, int y1, const char *
 
 		// --------- advance to next character------------//
 
-		int charWidth = textChar == ' ' ? space_width :
-			(font_info_array+textChar-first_char)->width;
+		int charWidth = textChar >= first_char && textChar <= last_char ?
+			(font_info_array+textChar-first_char)->width : space_width;
 
 		if( x1 + charWidth <= x2 )
 			put_char_to_buffer( dest, destPitch, x1, y1, textChar);
 
 		x1 += charWidth;
-		text += charSize;
 	}
 }
 //--------- End of function Font::put_to_buffer ---------//
@@ -1405,12 +1430,9 @@ void Font::put_paragraph_line(int x, int y, const char *textPtr, const char *tex
 
 	while( textPtr < textPtrEnd )
 	{
-		short textChar = *((unsigned char*)textPtr); // textChar is <unsiged char>
-//#ifdef GERMAN
-//		textChar = translate_german_char(textChar);
-//#endif
-
-		textPtr++;
+		int textChar = next_char(textPtr, utf8_flag);
+		if( !textChar )
+			break;
 
 		//---------- control char: '_' -------------//
 

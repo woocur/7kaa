@@ -96,6 +96,7 @@ public:
 
 	unsigned short first_char;         // the starting available character
 	unsigned short last_char;           // the ending available character
+	char    utf8_flag;          // text is UTF-8 since the font covers more than 8-bit codes
 
 	FontInfo* font_info_array;
 	char* 	 font_bitmap_buf;        // pointer to the buffer of the font
@@ -131,7 +132,7 @@ public:
 	int  put(int x, int y, int value, char clearBack=0, int x2= -1)
 		  { return put( x, y, misc.format(value), clearBack, x2 ); }
 
-	void put_char(int,int,unsigned short);
+	void put_char(int,int,int);
 	void right_put(int,int,char*);
 
 	int  d3_put(int,int,const char*);
@@ -143,7 +144,7 @@ public:
 	void count_line(int x1, int y1, int x2, int y2, const char *text,
 						 int lineSpace, int& totalLines, int& dispLines);
 
-	void put_char_to_buffer(char* dest, int destPitch, int x1, int y1, unsigned short text);
+	void put_char_to_buffer(char* dest, int destPitch, int x1, int y1, int textChar);
 	void put_to_buffer(char* dest, int destPitch, int x1, int y1, const char *text);
 	void center_put_to_buffer(char* dest, int destPitch, int x1, int y1, int x2, int y2, char *text);
 
