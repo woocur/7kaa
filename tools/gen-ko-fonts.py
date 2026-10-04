@@ -2,11 +2,13 @@
 """Build the Korean font set (FNT_*_KO.RES) for 7kaa.
 
 Each output font keeps the original glyphs for codes 33-255 and adds
-glyphs from a Galmuri BDF pixel font (OFL, https://github.com/quiple/galmuri)
-for every code point from 256 up to 0xFFEF. The game decodes text as UTF-8
-when a font covers more than 8-bit codes.
+glyphs for every code point from 256 up to 0xFFEF, either from the Galmuri
+BDF pixel fonts (OFL, https://github.com/quiple/galmuri) or from a TrueType
+font rasterized without anti-aliasing (e.g. Mabinogi Classic / 마비옛체).
+The game decodes text as UTF-8 when a font covers more than 8-bit codes.
 
 Usage: gen-ko-fonts.py <7kaa data/RESOURCE dir> <galmuri dist dir> <output dir>
+       gen-ko-fonts.py --ttf <font.ttf|.woff2> <7kaa data/RESOURCE dir> <output dir>
 """
 import os
 import struct
@@ -26,6 +28,9 @@ FONTS = {
     'CASA': ('Galmuri14.bdf',      219, 95),
 }
 FALLBACK_BDF = 'Galmuri11.bdf'   # for code points the bold face lacks
+
+# font name: pixel size used when rasterizing a TrueType font
+TTF_SIZES = {'STD': 13, 'SAN': 13, 'MID': 13, 'SMAL': 12, 'NEWS': 13, 'CASA': 16}
 
 
 def read_bdf(path):
@@ -59,6 +64,42 @@ def read_bdf(path):
                 pix = [[(int(r, 16) >> (len(r) * 4 - 1 - x)) & 1 for x in range(w)] for r in rows]
                 glyphs[enc] = (adv, w, h, xo, yo, pix)
         i += 1
+    return glyphs
+
+
+def read_ttf(path, size):
+    """Rasterize every non-Latin-1 glyph of a TrueType font into BDF-like tuples."""
+    from fontTools.ttLib import TTFont
+    from PIL import Image, ImageDraw, ImageFont
+    tt = TTFont(path)
+    codes = [c for c in tt.getBestCmap() if 0xFF < c <= LAST_CHAR]
+    if path.endswith('.woff2') or path.endswith('.woff'):
+        import io
+        tt.flavor = None
+        buf = io.BytesIO()
+        tt.save(buf)
+        buf.seek(0)
+        font = ImageFont.truetype(buf, size)
+    else:
+        font = ImageFont.truetype(path, size)
+    ascent = font.getmetrics()[0]
+    pad = size
+    glyphs = {}
+    for code in codes:
+        ch = chr(code)
+        im = Image.new('1', (size * 3, size * 3), 0)
+        d = ImageDraw.Draw(im)
+        d.fontmode = '1'
+        d.text((pad, pad), ch, font=font, fill=1)
+        bb = im.getbbox()
+        if not bb:
+            continue
+        x1, y1, x2, y2 = bb
+        x1 = min(x1, pad)          # keep the left side bearing
+        w, h = x2 - x1, y2 - y1
+        pix = [[1 if im.getpixel((x1 + x, y1 + y)) else 0 for x in range(w)] for y in range(h)]
+        yo = (pad + ascent) - y2   # bottom of the bitmap relative to the baseline
+        glyphs[code] = (int(round(font.getlength(ch))), w, h, 0, yo, pix)
     return glyphs
 
 
@@ -97,14 +138,20 @@ def make_glyph(g, base, main, shadow):
     return top, gw, gh, struct.pack('<HH', gw, gh) + body
 
 
-def build(name, res_dir, bdf_dir, out_dir, cache):
+def build(name, res_dir, bdf_dir, out_dir, cache, ttf=None):
     bdf_name, main, shadow = FONTS[name]
-    for b in (bdf_name, FALLBACK_BDF):
-        if b not in cache:
-            cache[b] = read_bdf(os.path.join(bdf_dir, b))
-    bdf, fallback = cache[bdf_name], cache[FALLBACK_BDF]
-    if bdf_name.startswith('Galmuri9') or bdf_name.startswith('Galmuri14'):
-        fallback = bdf
+    if ttf:
+        key = (ttf, TTF_SIZES[name])
+        if key not in cache:
+            cache[key] = read_ttf(ttf, TTF_SIZES[name])
+        bdf = fallback = cache[key]
+    else:
+        for b in (bdf_name, FALLBACK_BDF):
+            if b not in cache:
+                cache[b] = read_bdf(os.path.join(bdf_dir, b))
+        bdf, fallback = cache[bdf_name], cache[FALLBACK_BDF]
+        if bdf_name.startswith('Galmuri9') or bdf_name.startswith('Galmuri14'):
+            fallback = bdf
 
     (mw, mh, sh, fc, lc), infos, bitmap = read_font(os.path.join(res_dir, 'FNT_%s.RES' % name))
     # baseline of the original font: bottom of 'A'
@@ -144,10 +191,17 @@ def build(name, res_dir, bdf_dir, out_dir, cache):
 
 
 def main():
-    res_dir, bdf_dir, out_dir = sys.argv[1:4]
+    ttf = None
+    args = sys.argv[1:]
+    if args[0] == '--ttf':
+        ttf = args[1]
+        res_dir, out_dir = args[2:4]
+        bdf_dir = None
+    else:
+        res_dir, bdf_dir, out_dir = args[0:3]
     cache = {}
     for name in FONTS:
-        path, size = build(name, res_dir, bdf_dir, out_dir, cache)
+        path, size = build(name, res_dir, bdf_dir, out_dir, cache, ttf)
         print('%s %d' % (path, size))
 
 

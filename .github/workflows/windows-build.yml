@@ -70,11 +70,11 @@ jobs:
             mkdir -p $D/locale/$l/LC_MESSAGES
             msgfmt -o $D/locale/$l/LC_MESSAGES/7kaa.mo $po
           done
-          # Korean pixel fonts from Galmuri (OFL)
-          npm pack galmuri@2.40.3 --silent
-          mkdir galmuri && tar xzf galmuri-2.40.3.tgz -C galmuri
-          python3 tools/gen-ko-fonts.py data/RESOURCE galmuri/package/dist $D/RESOURCE
-          cp galmuri/package/dist/LICENSE.txt $D/COPYING.galmuri
+          # Korean fonts rasterized from Mabinogi Classic (마비옛체, Nexon)
+          pip3 install --break-system-packages -q fonttools brotli pillow
+          npm pack @noonnu/mabinogi-classic-r@0.1.0 --silent
+          mkdir mabi && tar xzf noonnu-mabinogi-classic-r-0.1.0.tgz -C mabi
+          python3 tools/gen-ko-fonts.py --ttf mabi/package/fonts/mabinogiclassicr-normal.woff2 data/RESOURCE $D/RESOURCE
           # Music is not in the source repo; take the unmodified set (with its license) from the official release
           curl -fsSL --retry 3 -o music.tgz "https://sourceforge.net/projects/skfans/files/7KAA%202.15.7/7kaa-2.15.7-linux-x86-64.tar.gz/download"
           tar xzf music.tgz --strip-components=1 -C $D 7kaa-2.15.7-linux-x86-64/MUSIC 7kaa-2.15.7-linux-x86-64/COPYING.music
