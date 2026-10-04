@@ -39,7 +39,8 @@ jobs:
 
       - name: Build 7kaa.exe
         run: |
-          ./autogen.sh
+          # sdl2.m4 (AM_PATH_SDL2) ships with the SDL2 devel package, not the runner
+          ACLOCAL_PATH="$PREFIX/share/aclocal" ./autogen.sh
           PKG_CONFIG_LIBDIR="$PREFIX/lib/pkgconfig" ./configure --host=$HOST --disable-curl --disable-nls \
             CPPFLAGS="-I$PREFIX/include" LDFLAGS="-L$PREFIX/lib"
           make -j4
