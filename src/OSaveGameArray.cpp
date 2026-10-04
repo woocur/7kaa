@@ -75,12 +75,12 @@ enum { BROWSE_X1 = 34,
 		 BROWSE_REC_HEIGHT = 62,
 		 BROWSE_X2 = BROWSE_X1 + BROWSE_REC_WIDTH - 1 };
 
-enum { SCROLL_X1 = 595,
-		 SCROLL_Y1 = 47,
-		 SCROLL_X2 = 609,
-		 SCROLL_Y2 = 324,
-		 SCROLL_WIDTH = SCROLL_X2 - SCROLL_X1 + 1,
-		 SCROLL_HEIGHT = SCROLL_Y2 - SCROLL_Y1 + 1 };
+#define SCROLL_X1 (595)
+#define SCROLL_Y1 (47)
+#define SCROLL_X2 (609)
+#define SCROLL_Y2 (324)
+#define SCROLL_WIDTH (SCROLL_X2 - SCROLL_X1 + 1)
+#define SCROLL_HEIGHT (SCROLL_Y2 - SCROLL_Y1 + 1)
 
 //----- File name of the game file array --------//
 

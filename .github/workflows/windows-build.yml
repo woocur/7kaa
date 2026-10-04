@@ -1,0 +1,86 @@
+name: Windows build
+
+on:
+  push:
+    branches: [hires]
+  workflow_dispatch:
+
+jobs:
+  win64:
+    runs-on: ubuntu-24.04
+    env:
+      HOST: x86_64-w64-mingw32
+      PREFIX: ${{ github.workspace }}/w64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cross compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mingw-w64 cmake autoconf-archive gettext autopoint pkg-config zip
+
+      - name: Build dependencies (SDL2, enet, OpenAL Soft)
+        run: |
+          mkdir -p deps "$PREFIX"
+          cd deps
+          curl -sSL -o sdl.tgz https://github.com/libsdl-org/SDL/releases/download/release-2.30.8/SDL2-devel-2.30.8-mingw.tar.gz
+          tar xzf sdl.tgz
+          cp -r SDL2-2.30.8/$HOST/* "$PREFIX"/
+          sed -i "s|^prefix=.*|prefix=$PREFIX|" "$PREFIX/lib/pkgconfig/sdl2.pc"
+          git clone -q --depth 1 -b v1.3.18 https://github.com/lsalzman/enet.git
+          (cd enet && autoreconf -i && ./configure --host=$HOST --prefix="$PREFIX" --disable-shared && make -j4 && make install)
+          sed -i 's|^Libs: .*|& -lws2_32 -lwinmm|' "$PREFIX/lib/pkgconfig/libenet.pc"
+          git clone -q --depth 1 -b 1.23.1 https://github.com/kcat/openal-soft.git
+          cmake -S openal-soft -B openal-soft/b -DCMAKE_SYSTEM_NAME=Windows \
+            -DCMAKE_C_COMPILER=$HOST-gcc -DCMAKE_CXX_COMPILER=$HOST-g++ -DCMAKE_RC_COMPILER=$HOST-windres \
+            -DCMAKE_INSTALL_PREFIX="$PREFIX" -DALSOFT_UTILS=OFF -DALSOFT_EXAMPLES=OFF -DCMAKE_BUILD_TYPE=Release
+          cmake --build openal-soft/b -j4
+          cmake --install openal-soft/b
+          # NLS: win-iconv plus the small libintl in tools/mini-libintl
+          git clone -q --depth 1 https://github.com/win-iconv/win-iconv.git
+          $HOST-gcc -O2 -c win-iconv/win_iconv.c -o win_iconv.o
+          $HOST-ar rcs "$PREFIX/lib/libiconv.a" win_iconv.o
+          { printf '#ifndef WINICONV_CONST\n#define WINICONV_CONST\n#endif\n'; cat win-iconv/iconv.h; } > "$PREFIX/include/iconv.h"
+          $HOST-gcc -O2 -c ../tools/mini-libintl/libintl.c -o libintl.o
+          $HOST-ar rcs "$PREFIX/lib/libintl.a" libintl.o
+          cp ../tools/mini-libintl/libintl.h "$PREFIX/include/"
+
+      - name: Build 7kaa.exe
+        run: |
+          # sdl2.m4 (AM_PATH_SDL2) ships with the SDL2 devel package, not the runner
+          ACLOCAL_PATH="$PREFIX/share/aclocal" ./autogen.sh
+          PKG_CONFIG_LIBDIR="$PREFIX/lib/pkgconfig" ./configure --host=$HOST --disable-curl \
+            CPPFLAGS="-I$PREFIX/include" LDFLAGS="-L$PREFIX/lib"
+          make -j4
+
+      - name: Package
+        run: |
+          D=dist/7kaa-hires-win64
+          mkdir -p $D
+          $HOST-strip -o $D/7kaa.exe src/7kaa.exe
+          cp "$PREFIX/bin/SDL2.dll" "$PREFIX/bin/OpenAL32.dll" $D/
+          cp /usr/lib/gcc/$HOST/*-win32/libstdc++-6.dll /usr/lib/gcc/$HOST/*-win32/libgcc_s_seh-1.dll $D/
+          $HOST-strip --strip-unneeded $D/*.dll
+          for d in ENCYC ENCYC2 IMAGE RESOURCE SCENARI2 SCENARIO SOUND SPRITE TUTORIAL; do cp -r data/$d $D/; done
+          find $D -name 'Makefile*' -delete
+          cp COPYING $D/
+          # translations
+          for po in po/*.po; do
+            l=$(basename $po .po)
+            mkdir -p $D/locale/$l/LC_MESSAGES
+            msgfmt -o $D/locale/$l/LC_MESSAGES/7kaa.mo $po
+          done
+          # Korean fonts rasterized from Mabinogi Classic (마비옛체, Nexon)
+          pip3 install --break-system-packages -q fonttools brotli pillow
+          npm pack @noonnu/mabinogi-classic-r@0.1.0 --silent
+          mkdir mabi && tar xzf noonnu-mabinogi-classic-r-0.1.0.tgz -C mabi
+          python3 tools/gen-ko-fonts.py --ttf mabi/package/fonts/mabinogiclassicr-normal.woff2 data/RESOURCE $D/RESOURCE
+          # Music is not in the source repo; take the unmodified set (with its license) from the official release
+          curl -fsSL --retry 3 -o music.tgz "https://sourceforge.net/projects/skfans/files/7KAA%202.15.7/7kaa-2.15.7-linux-x86-64.tar.gz/download"
+          tar xzf music.tgz --strip-components=1 -C $D 7kaa-2.15.7-linux-x86-64/MUSIC 7kaa-2.15.7-linux-x86-64/COPYING.music
+          test -f $D/MUSIC/WAR.WAV
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: 7kaa-hires-win64
+          path: dist/7kaa-hires-win64

@@ -99,6 +99,31 @@ void Matrix::init(int winX1, int winY1, int winX2, int winY2, int areaWidth,
 //------------- End of function Matrix::init -----------//
 
 
+//----------- Begin of function Matrix::set_window ----------//
+//
+// Move or resize the window after the screen size has changed. The area
+// must not grow beyond the save buffer size if one was created.
+//
+void Matrix::set_window(int winX1, int winY1, int areaWidth, int areaHeight)
+{
+	err_when( save_image_buf && areaWidth*areaHeight > image_width*image_height );
+
+	win_x1 = winX1;
+	win_y1 = winY1;
+	win_x2 = winX1+areaWidth-1;
+	win_y2 = winY1+areaHeight-1;
+
+	image_width  = areaWidth;
+	image_height = areaHeight;
+
+	image_x1 = win_x1;
+	image_y1 = win_y1;
+	image_x2 = image_x1+image_width-1;
+	image_y2 = image_y1+image_height-1;
+}
+//------------- End of function Matrix::set_window -----------//
+
+
 //----------- Begin of function Matrix::~Matrix ----------//
 
 Matrix::~Matrix()

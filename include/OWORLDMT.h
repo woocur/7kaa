@@ -32,6 +32,18 @@
 #include <ODYNARR.h>
 #endif
 
+#ifndef __OVGA_H
+#include <OVGA.h>
+#endif
+
+//------ Wide screen layout ------------//
+//
+// The top bar stays at the left, the side panel (mini map and info area) is
+// anchored to the right edge and the zoom window takes up the extra space.
+
+#define UI_X_SHIFT      (VGA_WIDTH-VGA_BASE_WIDTH)
+#define UI_Y_SHIFT      (VGA_HEIGHT-VGA_BASE_HEIGHT)
+
 //-------- World matrix size ------------//
 
 #define MAX_WORLD_X_LOC  (World::max_x_loc)
@@ -45,7 +57,7 @@
 #define MAX_MAP_WIDTH	200
 #define MAX_MAP_HEIGHT	200
 
-#define MAP_X1          (588+(MAX_MAP_WIDTH-MAP_WIDTH)/2)
+#define MAP_X1          (588+UI_X_SHIFT+(MAX_MAP_WIDTH-MAP_WIDTH)/2)
 #define MAP_Y1          (56 +(MAX_MAP_HEIGHT-MAP_HEIGHT)/2)
 #define MAP_X2          (MAP_X1+MAP_WIDTH-1)
 #define MAP_Y2          (MAP_Y1+MAP_HEIGHT-1)
@@ -60,11 +72,11 @@
 
 #define ZOOM_X1           0     // World Zoom Window
 #define ZOOM_Y1          56
-#define ZOOM_X2         575
-#define ZOOM_Y2         599
+#define ZOOM_X2         (575+UI_X_SHIFT)
+#define ZOOM_Y2         (599+UI_Y_SHIFT)
 
-#define ZOOM_WIDTH      576     // ZOOM_LOC_WIDTH(32)  * 18 = 576
-#define ZOOM_HEIGHT     544     // ZOOM_LOC_HEIGHT(32) * 17 = 544
+#define ZOOM_WIDTH      (576+UI_X_SHIFT)     // 576 = ZOOM_LOC_WIDTH(32)  * 18 at 800x600
+#define ZOOM_HEIGHT     (544+UI_Y_SHIFT)     // 544 = ZOOM_LOC_HEIGHT(32) * 17 at 800x600
 
 #define ZOOM_LOC_HEIGHT  32     // in world zoom window
 #define ZOOM_LOC_WIDTH   32

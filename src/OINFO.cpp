@@ -72,6 +72,7 @@ Info::Info() : report_array(sizeof(short), 50),
 					talk_msg_disp_array(sizeof(TalkMsgDisp), 50)
 {
 	info_background_bitmap = NULL;
+	info_background_size = 0;
 }
 //--------- End of function Info::Info ---------//
 
@@ -265,12 +266,64 @@ void Info::next_day()
 //
 void Info::disp_panel()
 {
-	image_interface.put_to_buf( &vga_back, "MAINSCR" );
+	if( UI_X_SHIFT==0 && UI_Y_SHIFT==0 )
+	{
+		image_interface.put_to_buf( &vga_back, "MAINSCR" );
+	}
+	else
+	{
+		//--- MAINSCR is drawn for 800x600, stretch it to fit the screen ---//
+		//
+		// The top bar stays at the left and the side panel is anchored to
+		// the right. The gaps are filled by repeating plain strips of the
+		// panel texture.
+
+		enum { PANEL_X1=576, BAR_HEIGHT=56,
+				 BAR_FILL_X1=460, BAR_FILL_X2=569,			// plain part of the top bar
+				 PANEL_TOP_Y2=299,
+				 PANEL_FILL_Y1=300, PANEL_FILL_Y2=499,		// plain part of the info area
+				 PANEL_BOTTOM_Y1=500 };
+
+		char* bitmapPtr = image_interface.get_ptr("MAINSCR");
+		int panelX1 = PANEL_X1 + UI_X_SHIFT;
+		int bottomY1 = PANEL_BOTTOM_Y1 + UI_Y_SHIFT;
+		int x, y;
+
+		// put_bitmap_area() takes the position of the whole bitmap, so
+		// subtract the source position to put the area at (desX, desY)
+		#define PUT_PANEL_AREA(desX, desY, srcX1, srcY1, srcX2, srcY2) \
+			vga_back.put_bitmap_area( (desX)-(srcX1), (desY)-(srcY1), bitmapPtr, srcX1, srcY1, srcX2, srcY2 )
+
+		PUT_PANEL_AREA( 0, 0, 0, 0, PANEL_X1-1, BAR_HEIGHT-1 );
+
+		for( x=PANEL_X1 ; x<panelX1 ; x+=BAR_FILL_X2-BAR_FILL_X1+1 )
+			PUT_PANEL_AREA( x, 0, BAR_FILL_X1, 0, MIN(BAR_FILL_X2, BAR_FILL_X1+panelX1-1-x), BAR_HEIGHT-1 );
+
+		PUT_PANEL_AREA( panelX1, 0, PANEL_X1, 0, VGA_BASE_WIDTH-1, PANEL_TOP_Y2 );
+
+		for( y=PANEL_TOP_Y2+1 ; y<bottomY1 ; y+=PANEL_FILL_Y2-PANEL_FILL_Y1+1 )
+			PUT_PANEL_AREA( panelX1, y, PANEL_X1, PANEL_FILL_Y1, VGA_BASE_WIDTH-1, MIN(PANEL_FILL_Y2, PANEL_FILL_Y1+bottomY1-1-y) );
+
+		PUT_PANEL_AREA( panelX1, bottomY1, PANEL_X1, PANEL_BOTTOM_Y1, VGA_BASE_WIDTH-1, VGA_BASE_HEIGHT-1 );
+
+		#undef PUT_PANEL_AREA
+	}
 
 	//------ keep a copy of bitmap of the panel texture -----//
 
-	if( !info_background_bitmap ) 
-		info_background_bitmap = mem_add( 4 + (INFO_X2-INFO_X1+1)*(INFO_Y2-INFO_Y1+1) );
+	int bitmapSize = 4 + (INFO_X2-INFO_X1+1)*(INFO_Y2-INFO_Y1+1);
+
+	if( info_background_bitmap && info_background_size != bitmapSize )
+	{
+		mem_del( info_background_bitmap );
+		info_background_bitmap = NULL;
+	}
+
+	if( !info_background_bitmap )
+	{
+		info_background_bitmap = mem_add( bitmapSize );
+		info_background_size = bitmapSize;
+	}
 
 	vga_back.read_bitmap( INFO_X1, INFO_Y1, INFO_X2, INFO_Y2, info_background_bitmap );
 }

@@ -104,6 +104,17 @@ void World::init()
 
 	map_matrix->init_para();
 	zoom_matrix->init_para();
+
+	//------ fit the windows to the current screen size ------//
+
+	static int lastXShift = 0;
+
+	map_matrix->set_window( map_matrix->win_x1 - lastXShift + UI_X_SHIFT, map_matrix->win_y1,
+		map_matrix->image_width, map_matrix->image_height );
+	lastXShift = UI_X_SHIFT;
+
+	zoom_matrix->set_window( ZOOM_X1, ZOOM_Y1, ZOOM_WIDTH, ZOOM_HEIGHT );
+	anim_line.init( ZOOM_X1, ZOOM_Y1, ZOOM_X2, ZOOM_Y2 );
 }
 //------------- End of function World::init -----------//
 

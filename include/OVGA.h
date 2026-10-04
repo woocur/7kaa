@@ -31,8 +31,14 @@
 
 //----------- define constants ----------//
 
-#define VGA_WIDTH             800
-#define VGA_HEIGHT            600
+// The menus and all original artwork are laid out for 800x600. The in-game
+// screen can be larger: Vga::set_mode() resizes the buffers at run time.
+#define VGA_BASE_WIDTH        800
+#define VGA_BASE_HEIGHT       600
+#define VGA_MAX_WIDTH        3840
+#define VGA_MAX_HEIGHT       2160
+#define VGA_WIDTH             (Vga::screen_width)
+#define VGA_HEIGHT            (Vga::screen_height)
 #define VGA_BPP                 8
 #define VGA_PALETTE_SIZE      256
 
@@ -89,6 +95,9 @@ public:
 	ColorTable*    vga_color_table;
 	unsigned char  gray_remap_table[VGA_PALETTE_SIZE];
 
+	static int     screen_width;
+	static int     screen_height;
+
 	static VgaBuf* active_buf;
 	static char    use_back_buf;
 	static char    opaque_flag;
@@ -103,6 +112,9 @@ public:
 	void   deinit();
 
 	char   is_inited()  { return window != NULL; }
+	int    set_mode(int width, int height);
+	void   set_game_mode();
+	void   set_menu_mode() { set_mode(VGA_BASE_WIDTH, VGA_BASE_HEIGHT); }
 
 	int    load_pal(const char* fileName);
 	void   activate_pal(VgaBuf*);

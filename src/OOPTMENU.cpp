@@ -101,6 +101,7 @@ void OptionMenu::enter(char untilExitFlag)
 	active_flag = 1;
 
 	info.save_game_scr();
+	vga.set_menu_mode();		// the options screen is drawn for 800x600
 
 	Config& tempConfig = config;
 	old_config = config;
@@ -425,6 +426,8 @@ void OptionMenu::exit(int action)
 		music.stop();
 	}
 
+	vga.set_game_mode();
+
 	// temporary disable active_flag for info.rest_game_scr to call info.disp
 	active_flag = 0;
 	info.rest_game_scr();
@@ -439,6 +442,7 @@ void OptionMenu::exit(int action)
 
 void OptionMenu::abort()
 {
+	vga.set_game_mode();
 	info.rest_game_scr();
    power.win_opened = 0;
 	active_flag = 0;
