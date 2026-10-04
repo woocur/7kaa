@@ -86,6 +86,7 @@
 // ##### begin Gilbert 23/10 ######//
 #include <OOPTMENU.h>
 #include <OINGMENU.h>
+#include <OTRAINER.h>
 // ##### end Gilbert 23/10 ######//
 #include <LocaleRes.h>
 #include <CmdLine.h>
@@ -1787,6 +1788,10 @@ void Sys::detect_function_key(unsigned scanCode, unsigned skeyState)
 
       case KEY_F11:
          capture_screen();
+         break;
+
+      case KEY_F12:
+         trainer.enter();
          break;
       }
    }

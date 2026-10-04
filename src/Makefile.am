@@ -116,6 +116,7 @@ bin_PROGRAMS = 7kaa
 	OIMGRES.cpp \
 	OINFO.cpp \
 	OINGMENU.cpp \
+	OTRAINER.cpp \
 	OLIGHTN.cpp \
 	OLIGHTN2.cpp \
 	OLOG.cpp \

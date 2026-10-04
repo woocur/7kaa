@@ -25,6 +25,7 @@
 #include <COLCODE.h>
 #include <OSYS.h>
 #include <OVGA.h>
+#include <OTRAINER.h>
 #include <OFONT.h>
 #include <OMOUSE.h>
 #include <OMOUSECR.h>
@@ -118,6 +119,7 @@ int Game::init(int loadGameCall)
 	music.stop();
 
 	vga.set_game_mode();		// must be set before the zoom and map windows are initialized
+	trainer.reset();
 
 	// ----- set waiting cursor -------- //
 	int oldCursor = mouse_cursor.get_icon();

@@ -62,6 +62,7 @@
 #include <OFIRMDIE.h>
 #include <OOPTMENU.h>
 #include <OINGMENU.h>
+#include <OTRAINER.h>
 #include <CmdLine.h>
 #include <gettext.h>
 
@@ -144,6 +145,8 @@ void Sys::process()
 	LOG_MSG("begin nation_array.process()");
 	nation_array.process();
 	LOG_MSG("end nation_array.process()");
+
+	trainer.process();
 	LOG_MSG(misc.get_random_seed());
 
 	LOG_MSG("begin bullet_array.process()");

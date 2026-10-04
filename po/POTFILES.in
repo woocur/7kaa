@@ -29,6 +29,7 @@ src/OGFILE.cpp
 src/OHELP.cpp
 src/OINFO.cpp
 src/OINGMENU.cpp
+src/OTRAINER.cpp
 src/OMONSRES.cpp
 src/ONATIONB.cpp
 src/ONEWSENG.cpp
